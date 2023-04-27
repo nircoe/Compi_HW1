@@ -44,7 +44,7 @@ const string tokennames[] = {
 
 string GetCurrectString(string str) 
 {
-  string s;
+  string s = "";
   for(int i = 0; i < str.length(); i++)
   {
     if(str[i] != '\\') s += str[i];
@@ -53,13 +53,17 @@ string GetCurrectString(string str)
       switch (str[i + 1])
       {
         case '\\':
-          if(str[i + 2] == '\\') s += '\\';
-          else                   s += '\"';
-          i += 2;
+          s += '\\';
+          i++;
+          break;
+        case '\"':
+          s += '\"';
+          i++;
           break;
         case 'x':
+          if(str.substr(i + 2, 2) == "00") return s;
           s += (char)(strtol((str.substr(i + 2, 2)).c_str(), nullptr, 16));
-          i + 3;
+          i += 3;
           break;
         case 'n':
           s += '\n';
@@ -74,9 +78,7 @@ string GetCurrectString(string str)
           i++;
           break;
         case '0':
-          s += '\0';
-          i++;
-          break;
+          return s;
       }
     }
   }
@@ -91,11 +93,10 @@ int main()
 	  // Your code here
 		string str = yytext;
     int line = yylineno;
-
+  
     switch (token)
     {
         case COMMENT:
-          line--;
           str = "//";
           break; 
         case STRING:
@@ -105,10 +106,16 @@ int main()
           std::cout << "Error unclosed string\n";
           exit(0);
         case SINGLE_ESCAPE_SEQUENCE:
-          exit(0);
-          // check what to print
+          token = (int)STRING;
+          str = "";
           break;
         case HEX_ERROR:
+          if(str.length() > 1) 
+          {
+            str = str.substr(0, 2);
+            if(str[1] == '"' || str[1] == '\"' || str[1] == '\0') str = str.substr(0, 1);
+          }
+          else if(str.length() == 1 && str[0] == '\"') str = "";
           std::cout << "Error undefined escape sequence x" << str << "\n";
           exit(0);
         case UNDEFINED_ESCAPE_SEQUENCE:
@@ -118,9 +125,7 @@ int main()
           std::cout << "Error " << str << "\n";
           exit(0);
     }
-    //printf("%d %s %s\n", line, tokennames[token - 1].c_str(), str.c_str());
 		std::cout << line << " " << tokennames[token-1] << " " << str << "\n";
-    //std::cout << str << "\n";
 
 	}
 	return 0;
